@@ -154,3 +154,76 @@ export async function getChatSuggestions(role) {
     ]
   })
 }
+
+// ─── Opportunities summary ────────────────────────────────────────
+export async function getOpportunitiesSummary() {
+  return apiFetch('/opportunities/summary', {
+    total: 0, high: 0, medium: 0, low: 0, total_students: 0, avg_score: 0
+  })
+}
+
+export async function getOpportunitiesByParish(parishName) {
+  return apiFetch(`/opportunities/by-parish/${encodeURIComponent(parishName)}`, [])
+}
+
+// ─── Sites summary & regions ──────────────────────────────────────
+export async function getSitesSummary() {
+  return apiFetch('/sites/summary', {
+    ready: 0, planning: 0, exploring: 0, total_unserved: 0, max_demand_score: 0
+  })
+}
+
+export async function getSiteRegions() {
+  return apiFetch('/sites/regions', { regions: [] })
+}
+
+export async function getExpansionSitesFiltered({ status, region } = {}) {
+  const params = new URLSearchParams()
+  if (status) params.append('status', status)
+  if (region) params.append('region', region)
+  const qs = params.toString() ? `?${params.toString()}` : ''
+  return apiFetch(`/sites/${qs}`, [])
+}
+
+// ─── Choropleth / map data ────────────────────────────────────────
+export async function getChoroplethData() {
+  return apiFetch('/parishes/map/choropleth', [])
+}
+
+// ─── Parish metrics (single parish) ──────────────────────────────
+export async function getParishMetrics(parishName) {
+  return apiFetch(`/metrics/parish/${encodeURIComponent(parishName)}`, null)
+}
+
+// ─── Single parish detail ─────────────────────────────────────────
+export async function getParishDetail(parishName) {
+  return apiFetch(`/parishes/${encodeURIComponent(parishName)}`, null)
+}
+
+// ─── ML endpoints ─────────────────────────────────────────────────
+export async function getEnrollmentForecast(parishName, years = 6) {
+  return apiFetch(`/ml/forecast/${encodeURIComponent(parishName)}?years=${years}`, {
+    parish: parishName,
+    forecasts: [
+      { year: 2025, predicted: 5000 },
+      { year: 2026, predicted: 5050 },
+      { year: 2027, predicted: 5100 },
+      { year: 2028, predicted: 5150 },
+      { year: 2029, predicted: 5200 },
+      { year: 2030, predicted: 5250 },
+    ],
+    fallback: true,
+  })
+}
+
+export async function getInvestmentScore(parishName) {
+  return apiFetch(`/ml/investment/${encodeURIComponent(parishName)}`, {
+    parish: parishName, score: 65, confidence: 0.7, rationale: 'Estimated', fallback: true
+  })
+}
+
+export async function getRiskScore(parishName) {
+  return apiFetch(`/ml/risk/${encodeURIComponent(parishName)}`, {
+    parish: parishName, risk_level: 'Moderate', score: 0.45, factors: [], fallback: true
+  })
+}
