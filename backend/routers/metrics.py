@@ -8,7 +8,7 @@ These power the overview cards at the top of each dashboard.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models import StateMetric, SPSHistory, ProficiencyByGrade
+from models import StateMetric, SPSHistory, ProficiencyByGrade, Parish
 from schemas import StateSummaryResponse, SPSHistoryResponse, ProficiencyResponse
 from typing import List
 
@@ -62,8 +62,28 @@ def get_sps_history(db: Session = Depends(get_db)):
 
 @router.get("/proficiency", response_model=List[ProficiencyResponse])
 def get_proficiency_by_grade(db: Session = Depends(get_db)):
-    """
-    Returns LEAP mastery rates by grade band.
-    Used for the proficiency bar chart.
-    """
+    """Returns LEAP mastery rates by grade band."""
     return db.query(ProficiencyByGrade).order_by(ProficiencyByGrade.id.asc()).all()
+
+
+@router.get("/parish/{parish_name}")
+def get_parish_metrics(parish_name: str, db: Session = Depends(get_db)):
+    """Returns all metrics for a single parish — used by the Operator market analysis panel."""
+    parish = db.query(Parish).filter(Parish.name.ilike(f"%{parish_name}%")).first()
+    if not parish:
+        raise HTTPException(status_code=404, detail=f"Parish '{parish_name}' not found")
+    return {
+        "name":         parish.name,
+        "sps":          parish.sps,
+        "grade":        parish.grade,
+        "enrollment":   parish.enrollment,
+        "growth":       parish.growth,
+        "gap":          parish.gap,
+        "graduation":   parish.graduation,
+        "proficiency":  parish.proficiency,
+        "poverty":      parish.poverty,
+        "funding_need": parish.funding_need,
+        "workforce":    parish.workforce,
+        "trend":        parish.trend,
+        "data_source":  parish.data_source,
+    }

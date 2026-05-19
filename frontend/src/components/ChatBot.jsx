@@ -181,8 +181,15 @@ export default function ChatBot() {
   const userRole    = user?.role ?? 'policymaker'
   const roleConf    = ROLE_CONFIG[userRole] ?? ROLE_CONFIG.policymaker
 
+  const STORAGE_KEY = `edupulse_chat_${userRole}`
+
   const [open, setOpen]             = useState(false)
-  const [messages, setMessages]     = useState([])
+  const [messages, setMessages]     = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      return saved ? JSON.parse(saved) : []
+    } catch { return [] }
+  })
   const [input, setInput]           = useState('')
   const [loading, setLoading]       = useState(false)
   const [suggestions, setSuggestions] = useState([])
@@ -190,6 +197,22 @@ export default function ChatBot() {
 
   const bottomRef  = useRef(null)
   const inputRef   = useRef(null)
+
+  // Persist last 20 messages to localStorage
+  useEffect(() => {
+    try {
+      const toSave = messages.slice(-20)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
+    } catch { /* ignore quota errors */ }
+  }, [messages, STORAGE_KEY])
+
+  // Clear history on logout
+  useEffect(() => {
+    if (!user) {
+      localStorage.removeItem(STORAGE_KEY)
+      setMessages([])
+    }
+  }, [user, STORAGE_KEY])
 
   // Load suggestions on mount
   useEffect(() => {
@@ -206,7 +229,7 @@ export default function ChatBot() {
     if (open) { setTimeout(() => inputRef.current?.focus(), 100) }
   }, [open])
 
-  // Welcome message when first opened
+  // Welcome message when first opened (only if no history)
   useEffect(() => {
     if (open && messages.length === 0) {
       setMessages([{
@@ -227,10 +250,11 @@ export default function ChatBot() {
     setInput('')
     setLoading(true)
 
-    // Build history for Gemini (exclude welcome message)
+    // Build history (exclude first welcome message, keep last 10 turns)
     const history = messages
       .filter(m => m.role === 'user' || (m.role === 'assistant' && m.id !== messages[0]?.id))
-      .map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', content: m.content }))
+      .slice(-10)
+      .map(m => ({ role: m.role, content: m.content }))
 
     const result = await sendChatMessage({
       message:             text,
@@ -294,8 +318,9 @@ export default function ChatBot() {
 
       {/* ── Chat panel ──────────────────────────────────────── */}
       {open && (
-        <div className={`fixed bottom-6 right-6 z-50 w-96 rounded-2xl border shadow-2xl flex flex-col overflow-hidden animate-fade-up ${panelBg}`}
-          style={{ height: '580px', fontFamily: "'DM Sans', sans-serif" }}>
+        <div className={`fixed z-50 rounded-2xl border shadow-2xl flex flex-col overflow-hidden animate-fade-up ${panelBg}
+          bottom-0 right-0 left-0 sm:bottom-6 sm:right-6 sm:left-auto sm:w-96 w-full`}
+          style={{ height: '580px', maxHeight: '90vh', fontFamily: "'DM Sans', sans-serif" }}>
 
           {/* Header */}
           <div className={`flex items-center justify-between px-4 py-3.5 border-b ${isDark ? 'border-white/8' : 'border-navy/8'} ${headerBg}`}>
@@ -398,7 +423,7 @@ export default function ChatBot() {
               </button>
             </div>
             <p className={`text-[9px] text-center mt-2 ${isDark ? 'text-slate-brand/40' : 'text-navy/20'}`}>
-              Powered by Google Gemini · Answers based on LDOE 2024 data
+              Powered by Groq llama-3.3-70b · Answers based on LDOE 2024 data
             </p>
           </div>
         </div>
