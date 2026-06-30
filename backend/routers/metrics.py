@@ -30,11 +30,19 @@ def get_state_summary(db: Session = Depends(get_db)):
         m = db.query(StateMetric).filter(StateMetric.key == key).first()
         return m.value_str if m and m.value_str else default
 
+    # Compute SPS trend from the two most recent sps_history entries
+    sps_hist = db.query(SPSHistory).order_by(SPSHistory.year.desc()).limit(2).all()
+    if len(sps_hist) >= 2:
+        delta = round(sps_hist[0].sps - sps_hist[1].sps, 1)
+        sps_trend = f"+{delta}" if delta >= 0 else str(delta)
+    else:
+        sps_trend = "+0.0"
+
     return StateSummaryResponse(
-        sps_score        = get_val("sps_score", 80.2),
+        sps_score        = get_val("sps_score", 80.9),
         sps_grade        = get_str("sps_grade", "B"),
-        sps_trend        = "+1.7",
-        graduation_rate  = get_val("graduation_rate", 83.2),
+        sps_trend        = sps_trend,
+        graduation_rate  = get_val("graduation_rate", 83.4),
         enrollment_total = int(get_val("enrollment_total", 686000)),
         poverty_rate     = get_val("poverty_rate", 18.7),
         child_poverty    = get_val("child_poverty", 25.2),

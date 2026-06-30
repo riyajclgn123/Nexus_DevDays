@@ -125,4 +125,4 @@ def get_workforce_gaps(db: Session = Depends(get_db)):
     Returns workforce demand vs supply gap by sector.
     Sorted by gap size descending (biggest shortage first).
     """
-    return db.query(WorkforceGap).order_by(WorkforceGap.gap.desc()).all()
+    return db.query(WorkforceGap).order_by(WorkforceGap.demand.desc()).all()

@@ -96,7 +96,7 @@ class ProficiencyByGrade(Base):
     __tablename__ = "proficiency_by_grade"
 
     id         = Column(Integer, primary_key=True, index=True)
-    grade_band = Column(String(10), nullable=False)  # e.g. "K-2", "3-5"
+    grade_band = Column(String(20), nullable=False)  # e.g. "K-2", "Grades 3-8", "High School"
     ela        = Column(Float)   # ELA mastery %
     math       = Column(Float)   # Math mastery %
     year       = Column(Integer)

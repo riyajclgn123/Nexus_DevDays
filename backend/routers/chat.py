@@ -44,9 +44,10 @@ def get_live_context(db: Session, user_role: str) -> str:
         for p in parishes
     ])
 
-    workforce = db.query(WorkforceGap).order_by(WorkforceGap.gap.desc()).all()
+    workforce = db.query(WorkforceGap).order_by(WorkforceGap.demand.desc()).all()
     workforce_text = "\n".join([
-        f"- {w.sector}: Demand={w.demand} Supply={w.supply} Gap={w.gap} Growth={w.growth_pct}"
+        f"- {w.sector}: Employed={w.demand:,} Growth={w.growth_pct}"
+        + (f" Gap={w.gap:,}" if w.gap else " (graduate pipeline data pending)")
         for w in workforce
     ])
 
