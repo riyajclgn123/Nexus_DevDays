@@ -18,7 +18,7 @@ Tables:
   - sps_history      → statewide SPS score over years
 """
 
-from sqlalchemy import Column, Integer, Float, String, Boolean, Text, DateTime
+from sqlalchemy import Column, Integer, Float, String, Boolean, Text, DateTime, BigInteger, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 from database import Base
 
@@ -178,3 +178,118 @@ class Alert(Base):
     message    = Column(Text, nullable=False)
     is_active  = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ─── Data Sources Table ───────────────────────────────────────────
+class DataSource(Base):
+    """
+    Registry of every external data source EduPulse ingests from.
+    Every fact in metric_provenance points back to a row here, so any
+    number on a dashboard can be traced to where it actually came from.
+    """
+    __tablename__ = "data_sources"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    name          = Column(String(200), nullable=False, unique=True)   # e.g. "US Census ACS5 2024"
+    organization  = Column(String(200))                                # e.g. "US Census Bureau"
+    url           = Column(String(500))                                # canonical source URL
+    api_endpoint  = Column(String(500))                                # actual API URL hit, if any
+    vintage       = Column(String(20))                                 # e.g. "2024", "2014-15"
+    retrieved_at  = Column(DateTime(timezone=True))                    # when we last pulled it
+    is_historical = Column(Boolean, default=False)                     # flags stale/dissolved-program data
+    notes         = Column(Text)                                       # e.g. "RSD dissolved 2019; data shown for historical context only"
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ─── Metric Provenance Table ──────────────────────────────────────
+class MetricProvenance(Base):
+    """
+    Links a specific (table, row, column) fact to the data_sources row
+    it came from, plus an optional derivation formula if the value was
+    computed rather than ingested directly.
+    """
+    __tablename__ = "metric_provenance"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    source_id       = Column(Integer, ForeignKey("data_sources.id"), nullable=False)
+    table_name      = Column(String(100), nullable=False)   # e.g. "parishes"
+    row_identifier  = Column(String(200), nullable=False)   # e.g. parish name or fips
+    column_name     = Column(String(100), nullable=False)   # e.g. "poverty"
+    derivation      = Column(Text)                          # formula/notes if computed, else null
+    is_projected    = Column(Boolean, default=False)        # true if extrapolated, not officially released
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("table_name", "row_identifier", "column_name", name="uq_provenance_fact"),
+    )
+
+
+# ─── Census ACS5 Demographics Table ───────────────────────────────
+class CensusACS(Base):
+    """
+    Raw-ish demographic pulls from the Census ACS5 API, one row per
+    parish per vintage year. Kept separate from `parishes` so re-pulls
+    never clobber the curated/displayed parish table directly.
+    """
+    __tablename__ = "census_acs"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    parish_name      = Column(String(100), nullable=False, index=True)
+    fips             = Column(String(5))
+    year             = Column(Integer, nullable=False)       # ACS5 vintage year
+    median_income    = Column(Integer)
+    poverty_rate     = Column(Float)
+    poverty_under18  = Column(Float)
+    population       = Column(Integer)
+    population_under18 = Column(Integer)
+    source_id        = Column(Integer, ForeignKey("data_sources.id"))
+    created_at       = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("parish_name", "year", name="uq_census_acs_parish_year"),
+    )
+
+
+# ─── BLS Employment Table ─────────────────────────────────────────
+class BLSEmployment(Base):
+    """
+    BLS CES/LAUS timeseries pulls, statewide or by area.
+    One row per series per period.
+    """
+    __tablename__ = "bls_employment"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    series_id   = Column(String(50), nullable=False, index=True)
+    series_label = Column(String(200))
+    area        = Column(String(100))    # e.g. "Louisiana" or a parish/MSA name
+    sector      = Column(String(100))    # e.g. "Healthcare", "Manufacturing"
+    year        = Column(Integer, nullable=False)
+    period      = Column(String(10))     # e.g. "M01".."M13" per BLS convention
+    value       = Column(Float)
+    source_id   = Column(Integer, ForeignKey("data_sources.id"))
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("series_id", "year", "period", name="uq_bls_series_period"),
+    )
+
+
+# ─── RSD Eligible Schools Table (historical) ──────────────────────
+class RSDEligibleSchool(Base):
+    """
+    2014-15 Recovery School District eligibility list. The RSD program
+    was dissolved in 2019, so this is ingested strictly as historical
+    reference data, never displayed as current. is_historical on the
+    linked data_sources row is the authoritative flag; vintage='2014-15'
+    here is redundant-but-explicit for query convenience.
+    """
+    __tablename__ = "rsd_eligible_schools"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    school_name  = Column(String(200), nullable=False)
+    parish_name  = Column(String(100), index=True)
+    district     = Column(String(200))
+    vintage      = Column(String(20), default="2014-15")
+    is_historical = Column(Boolean, default=True, nullable=False)
+    source_id    = Column(Integer, ForeignKey("data_sources.id"))
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
