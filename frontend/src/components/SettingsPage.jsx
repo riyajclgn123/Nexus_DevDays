@@ -12,6 +12,8 @@ import {
   Moon, Sun, Trash2, Bell, BellOff, ExternalLink, RefreshCw, Shield
 } from 'lucide-react'
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+
 const TABS = [
   { key: 'profile',  label: 'Profile',       icon: User     },
   { key: 'prefs',    label: 'Preferences',   icon: Palette  },
@@ -350,52 +352,75 @@ function DataTab({ isDark }) {
   const muted = isDark ? 'text-slate-brand' : 'text-navy/50'
   const card  = isDark ? 'bg-navy-2 border border-white/8' : 'bg-white border border-navy/8 shadow-sm'
 
+  const [liveSources, setLiveSources] = useState(null)
+  const [loading, setLoading]         = useState(true)
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/data-sources/`)
+      .then(r => r.json())
+      .then(d => { setLiveSources(Array.isArray(d) ? d : null); setLoading(false) })
+      .catch(() => { setLiveSources(null); setLoading(false) })
+  }, [])
+
+  const sources = liveSources || DATA_SOURCES.map(s => ({
+    name: s.name, organization: s.org, url: s.url, vintage: s.vintage,
+    notes: s.covers, retrieved_at: s.retrieved, is_historical: false,
+  }))
+
   function clearFilters() {
-    Object.keys(localStorage).filter(k => k.startsWith('edupulse_filter_')).forEach(k => localStorage.removeItem(k))
-    alert('Saved filters cleared.')
+    Object.keys(localStorage).filter(k => k.startsWith('edupulse_')).forEach(k => localStorage.removeItem(k))
+    alert('Saved preferences cleared.')
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return 'Unknown'
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   return (
     <div className="space-y-4 max-w-lg">
-      {/* Freshness overview */}
       <div className={`rounded-xl p-4 ${card}`}>
         <div className="flex items-center justify-between mb-3">
           <p className={`text-sm font-semibold ${text}`}>Data Currency</p>
           <span className="flex items-center gap-1 text-[10px] font-mono text-teal-2">
-            <RefreshCw size={10} /> ETL run 2026-06-30
+            <RefreshCw size={10} /> {liveSources ? 'Live from DB' : 'Cached'}
           </span>
         </div>
-        <div className="space-y-3">
-          {DATA_SOURCES.map(s => (
-            <div key={s.name} className={`border rounded-lg p-3 ${isDark ? 'border-white/6 bg-white/2' : 'border-navy/6 bg-slate-50'}`}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className={`text-xs font-semibold truncate ${text}`}>{s.name}</p>
-                  <p className={`text-[10px] ${muted}`}>{s.org} · {s.vintage}</p>
-                  <p className={`text-[10px] mt-0.5 ${muted}`}>{s.covers}</p>
+        {loading ? (
+          <p className={`text-xs ${muted}`}>Loading…</p>
+        ) : (
+          <div className="space-y-2.5">
+            {sources.filter(s => !s.is_historical).map(s => (
+              <div key={s.name} className={`border rounded-lg p-3 ${isDark ? 'border-white/6 bg-white/2' : 'border-navy/6 bg-slate-50'}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className={`text-xs font-semibold truncate ${text}`}>{s.name}</p>
+                    <p className={`text-[10px] ${muted}`}>{s.organization} · {s.vintage}</p>
+                    {s.notes && <p className={`text-[10px] mt-0.5 leading-relaxed ${muted}`}>{s.notes?.slice(0, 100)}{s.notes?.length > 100 ? '…' : ''}</p>}
+                  </div>
+                  {s.url && (
+                    <a href={s.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 text-teal-2 hover:underline">
+                      <ExternalLink size={12} />
+                    </a>
+                  )}
                 </div>
-                <a href={s.url} target="_blank" rel="noopener noreferrer"
-                  className="flex-shrink-0 text-teal-2 hover:underline">
-                  <ExternalLink size={12} />
-                </a>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-2 flex-shrink-0" />
+                  <span className={`text-[10px] font-mono ${muted}`}>Retrieved {s.retrieved_at ? fmtDate(s.retrieved_at) : (s.retrieved || '—')}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 mt-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-2 flex-shrink-0" />
-                <span className={`text-[10px] font-mono ${muted}`}>Retrieved {s.retrieved}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Browser state */}
       <div className={`rounded-xl p-4 ${card}`}>
         <p className={`text-sm font-medium mb-1 ${text}`}>Browser State</p>
-        <p className={`text-xs mb-3 ${muted}`}>Clear any saved filter or preference state stored in your browser.</p>
+        <p className={`text-xs mb-3 ${muted}`}>Clear all saved filter, map layer, and notification preferences from your browser.</p>
         <button onClick={clearFilters}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors cursor-pointer">
           <Trash2 size={12} />
-          Clear Saved Filters
+          Clear All Saved Preferences
         </button>
       </div>
     </div>

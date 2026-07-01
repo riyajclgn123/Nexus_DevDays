@@ -85,12 +85,11 @@ export async function getParishSummary() {
 // ─── Workforce ───────────────────────────────────────────────────
 export async function getWorkforceGaps() {
   return apiFetch('/workforce/', [
-    { sector: 'Skilled Trades', demand: 6200, supply: 3400, gap: 2800, growth_pct: '+8%'  },
-    { sector: 'Healthcare',     demand: 4800, supply: 1900, gap: 2900, growth_pct: '+12%' },
-    { sector: 'Energy/LNG',     demand: 4100, supply: 2600, gap: 1500, growth_pct: '+22%' },
-    { sector: 'Technology',     demand: 3400, supply: 980,  gap: 2420, growth_pct: '+18%' },
-    { sector: 'Education',      demand: 3100, supply: 2200, gap: 900,  growth_pct: '+4%'  },
-    { sector: 'Logistics',      demand: 2600, supply: 1800, gap: 800,  growth_pct: '+6%'  },
+    { sector: 'Trade, Transport & Utilities', demand: 372800, supply: null, gap: null, growth_pct: '-0.2%' },
+    { sector: 'Education & Health',           demand: 345800, supply: null, gap: null, growth_pct: '+2.9%' },
+    { sector: 'Government',                   demand: 322500, supply: null, gap: null, growth_pct: '+1.4%' },
+    { sector: 'Construction & Trades',        demand: 222300, supply: null, gap: null, growth_pct: '+0.9%' },
+    { sector: 'Manufacturing',                demand: 140500, supply: null, gap: null, growth_pct: '+0.8%' },
   ])
 }
 

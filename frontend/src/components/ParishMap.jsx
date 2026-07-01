@@ -10,11 +10,10 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps'
+import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
 import { MapPin } from 'lucide-react'
 
-// Louisiana parishes GeoJSON (state-county FIPS 22)
-const GEO_URL = 'https://raw.githubusercontent.com/loganpowell/census-geojson/master/GeoJSON/500k/2018/state-county/22.json'
+const GEO_URL = '/louisiana-parishes.json'
 
 // Color scales per metric
 const COLOR_CONFIGS = {
@@ -143,15 +142,14 @@ export default function ParishMap({ data = [], colorMetric = 'sps', onParishClic
       ) : (
         <div className="relative">
           <ComposableMap
-            projection="geoAlbersUsa"
-            projectionConfig={{ scale: 4800, center: [-92.5, 31.0] }}
+            projection="geoMercator"
+            projectionConfig={{ scale: 3800, center: [-92.0, 31.15] }}
             style={{ width: '100%', height: 'auto' }}
           >
-            <ZoomableGroup zoom={1} center={[0, 0]}>
-              <Geographies geography={GEO_URL} onError={() => setGeoError(true)}>
-                {({ geographies }) =>
+            <Geographies geography={GEO_URL} onError={() => setGeoError(true)}>
+              {({ geographies }) =>
                   geographies.map(geo => {
-                    const geoName = geo.properties.NAME || geo.properties.name || ''
+                    const geoName = geo.properties.NAME || geo.properties.name || geo.properties.COUNTY || ''
                     const fill    = getFillColor(geoName)
                     const parish  = getParishData(geoName)
                     const isSelected = selected && (parish?.parish === selected || geoName === selected)
@@ -184,8 +182,7 @@ export default function ParishMap({ data = [], colorMetric = 'sps', onParishClic
                     )
                   })
                 }
-              </Geographies>
-            </ZoomableGroup>
+            </Geographies>
           </ComposableMap>
 
           {/* Tooltip */}

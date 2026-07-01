@@ -36,6 +36,7 @@ from routers.opportunities import (
 )
 from routers.chat import router as chat_router
 from routers.ml import ml_router
+from routers.data_sources import router as data_sources_router
 
 # Load .env variables
 load_dotenv()
@@ -91,7 +92,8 @@ app.include_router(sites_router,     prefix="/api/v1")
 app.include_router(alerts_router,    prefix="/api/v1")
 app.include_router(workforce_router, prefix="/api/v1")
 app.include_router(chat_router,      prefix="/api/v1")
-app.include_router(ml_router,        prefix="/api/v1")
+app.include_router(ml_router,          prefix="/api/v1")
+app.include_router(data_sources_router, prefix="/api/v1")
 
 # ─── Root and health check endpoints ─────────────────────────────
 @app.get("/")
