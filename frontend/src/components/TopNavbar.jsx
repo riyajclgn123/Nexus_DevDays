@@ -96,7 +96,7 @@ export default function TopNavbar({ navItems, active, setActive, roleConfig }) {
 
             {/* FY badge */}
             <span className={`hidden sm:inline-flex font-mono text-[10px] border rounded-md px-2 py-1 ${isDark ? 'text-slate-brand border-white/10' : 'text-navy/40 border-navy/10'}`}>
-              FY 2025–26
+              FY 2024–25
             </span>
 
             {/* Dark/light toggle */}

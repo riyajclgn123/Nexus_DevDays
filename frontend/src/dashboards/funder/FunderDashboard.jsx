@@ -178,16 +178,15 @@ function ImpactSection({ isDark }) {
       </div>
 
       <Card isDark={isDark}>
-        <p className={`text-sm font-medium mb-0.5 ${text}`}>Workforce Gap by Sector</p>
-        <p className={`text-xs mb-4 ${muted}`}>Projected demand vs. supply (2028) — BLS Louisiana</p>
+        <p className={`text-sm font-medium mb-0.5 ${text}`}>Employment by Sector</p>
+        <p className={`text-xs mb-4 ${muted}`}>Actual jobs (2024) — BLS Louisiana CES · graduate pipeline data pending</p>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={workforce} barSize={14}>
+          <BarChart data={workforce} barSize={18}>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
             <XAxis dataKey="sector" tick={{ fill: '#8B9DB5', fontSize: 9 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#8B9DB5', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#8B9DB5', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
             <Tooltip content={<ChartTip isDark={isDark} />} />
-            <Bar dataKey="demand" name="Demand" fill="#C9A84C" radius={[3,3,0,0]} />
-            <Bar dataKey="supply" name="Supply" fill="#0D7377" radius={[3,3,0,0]} />
+            <Bar dataKey="demand" name="Employed (2024)" fill="#C9A84C" radius={[3,3,0,0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -326,62 +325,69 @@ function WorkforceSection({ isDark }) {
   const text  = isDark ? 'text-white'       : 'text-navy'
   const muted = isDark ? 'text-slate-brand' : 'text-navy/50'
   const sectorBlurbs = {
-    'Healthcare':     'Nursing and allied health training pipelines directly tied to K-12 STEM programs.',
-    'Technology':     'Software/IT roles require CS education pathways starting in middle school.',
-    'Skilled Trades': 'CTE vocational programs at the high school level are the primary pipeline.',
-    'Energy/LNG':     'Louisiana LNG boom demands STEM + technical training — starts with K-12.',
-    'Education':      'Teacher shortage directly impacts classroom quality and SPS scores.',
-    'Logistics':      'Supply chain roles need workforce math and logistics coursework.',
+    'Education & Health':          'Nursing, allied health, and teaching pipeline directly tied to K-12 STEM and CTE programs.',
+    'Trade, Transport & Utilities':'Logistics and utility roles require workforce math and CTE coursework at the high school level.',
+    'Government':                  'Public sector talent pipeline depends on civic education and higher ed attainment.',
+    'Construction & Trades':       'CTE vocational programs at the high school level are the primary pipeline for this sector.',
+    'Manufacturing':               'Advanced manufacturing needs STEM and technical training starting in middle school.',
   }
 
-  const sorted = [...workforce].sort((a, b) => (b.gap ?? 0) - (a.gap ?? 0))
+  const sorted = [...workforce].sort((a, b) => (b.demand ?? 0) - (a.demand ?? 0))
 
   return (
     <div className="animate-fade-up space-y-5">
       <div>
-        <h2 className={`font-display text-xl font-semibold mb-1 ${text}`}>Workforce Gap Analysis</h2>
-        <p className={`text-sm ${muted}`}>Projected job demand vs. education pipeline — BLS Louisiana 2025</p>
+        <h2 className={`font-display text-xl font-semibold mb-1 ${text}`}>Workforce Analysis</h2>
+        <p className={`text-sm ${muted}`}>Current sector employment (2024) — BLS Louisiana CES · graduate pipeline data pending</p>
       </div>
       {loading ? <Spinner isDark={isDark} /> : (
         <>
           <Card isDark={isDark}>
-            <p className={`text-sm font-medium mb-4 ${text}`}>Demand vs Supply vs Gap by Sector</p>
+            <div className="flex items-center justify-between mb-4">
+              <p className={`text-sm font-medium ${text}`}>Employment by Sector (2024)</p>
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${isDark ? 'border-white/10 text-slate-brand' : 'border-navy/10 text-navy/40'}`}>
+                BLS CES · Annual Average
+              </span>
+            </div>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={workforce} barSize={12}>
+              <BarChart data={sorted} barSize={20}>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
                 <XAxis dataKey="sector" tick={{ fill: '#8B9DB5', fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#8B9DB5', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#8B9DB5', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<ChartTip isDark={isDark} />} />
-                <Legend wrapperStyle={{ fontSize: 11, color: isDark ? '#8B9DB5' : '#0A2342' }} />
-                <Bar dataKey="demand" name="Demand" fill="#2EC4B6" radius={[3,3,0,0]} />
-                <Bar dataKey="supply" name="Supply" fill="#F5A623" radius={[3,3,0,0]} />
-                <Bar dataKey="gap"    name="Gap"    fill="#0A2342" radius={[3,3,0,0]} />
+                <Bar dataKey="demand" name="Employed (2024)" fill="#2EC4B6" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
+            <p className={`text-[10px] text-center mt-2 ${muted}`}>Graduate pipeline (supply) data pending — requires LDOE CTE credential data</p>
           </Card>
 
           <div className="space-y-2">
-            <h3 className={`text-sm font-medium ${text}`}>Sectors by Gap — Education Relevance</h3>
-            {sorted.map((w, i) => (
-              <Card key={w.id} isDark={isDark} className="p-4 flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-gold/15 border border-gold/25 flex items-center justify-center text-xs font-bold text-[#8B6914] flex-shrink-0">
-                  {i + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className={`font-semibold text-sm ${text}`}>{w.sector}</span>
-                    <span className="text-red-500 font-mono text-xs font-bold">{w.gap?.toLocaleString()} unfilled</span>
+            <h3 className={`text-sm font-medium ${text}`}>Sectors — K-12 Education Relevance</h3>
+            {sorted.map((w, i) => {
+              const growthPos = w.growth_pct && !w.growth_pct.startsWith('-')
+              return (
+                <Card key={w.id} isDark={isDark} className="p-4 flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-gold/15 border border-gold/25 flex items-center justify-center text-xs font-bold text-[#8B6914] flex-shrink-0">
+                    {i + 1}
                   </div>
-                  <p className={`text-xs ${muted}`}>{sectorBlurbs[w.sector] || 'Directly tied to K-12 education outcomes.'}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-navy/8'}`}>
-                      <div className="h-full rounded-full bg-gold" style={{ width: `${Math.round((w.gap/w.demand)*100)}%` }} />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className={`font-semibold text-sm ${text}`}>{w.sector}</span>
+                      <span className={`font-mono text-xs font-bold ${growthPos ? 'text-teal-2' : 'text-red-400'}`}>
+                        {w.growth_pct} YoY
+                      </span>
                     </div>
-                    <span className={`text-[10px] font-mono ${muted}`}>{Math.round((w.gap/w.demand)*100)}% gap · {w.growth_pct} growth</span>
+                    <p className={`text-xs ${muted}`}>{sectorBlurbs[w.sector] || 'Directly tied to K-12 education outcomes.'}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-navy/8'}`}>
+                        <div className="h-full rounded-full bg-teal-2" style={{ width: `${Math.min(100, Math.round((w.demand / 400000) * 100))}%` }} />
+                      </div>
+                      <span className={`text-[10px] font-mono ${muted}`}>{w.demand?.toLocaleString()} employed · pipeline pending</span>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              )
+            })}
           </div>
         </>
       )}
