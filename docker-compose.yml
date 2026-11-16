@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: REDACTED
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: edupulse
     ports:
       - "5433:5432"
@@ -28,7 +28,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql://postgres:REDACTED@postgres:5432/edupulse
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       FRONTEND_URL: http://localhost:5173
     ports:
       - "8000:8000"
